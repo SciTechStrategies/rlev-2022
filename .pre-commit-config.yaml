@@ -16,4 +16,8 @@ repos:
     rev: 5.10.0
     hooks:
     -   id: isort
+-   repo: https://github.com/lovesegfault/beautysh
+    rev: v6.2.1
+    hooks:
+    -   id: beautysh
 # -   id: autoflake
