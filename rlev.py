@@ -1,4 +1,5 @@
 import pickle
+from collections import Counter
 
 import click
 import numpy as np
@@ -128,9 +129,26 @@ def train_word_feature_model(
     model = LogisticRegression(
         penalty="l2",
         C=1e5,
-    )  # C=1e2, max_iter=350)
+    )
     model.fit(X, Y)
     pickle.dump(model, outfile)
+
+
+@cli.command("get-rlev-priors")
+@click.argument("infile", type=click.File("rt"))
+@click.argument("outfile", type=click.File("wb"))
+def get_rlev_priors(
+    infile,
+    outfile,
+):
+    """Create the input matrix and label array for a word feature model."""
+    # 1-indexed input
+    counts = Counter(int(line.strip()) - 1 for line in infile)
+    total_count = sum(counts.values())
+    priors = [
+        counts.get(rlev, 0) / total_count for rlev in range(0, max(counts.keys()) + 1)
+    ]
+    pickle.dump(priors, outfile)
 
 
 if __name__ == "__main__":

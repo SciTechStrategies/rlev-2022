@@ -4,9 +4,9 @@ set -e
 
 RLEV="python rlev.py"
 DATA_DIR="data"
-MIN_WORD_FEATURE_DF=250
+MIN_WORD_FEATURE_DF=10
 MIN_YR=10
-MAX_YR=13
+MAX_YR=10
 
 TITLE_COL=8
 ABSTR_COL=9
@@ -24,7 +24,7 @@ do
     ALL_INPUT_FILES="$ALL_INPUT_FILES $DATA_DIR/$basename"
 done
 
-UNZIP_INPUT="gunzip -c $ALL_INPUT_FILES"  #  | head -1000000"
+UNZIP_INPUT="gunzip -c $ALL_INPUT_FILES | head -1000"
 
 echo "Building title vectorizer..."
 TITLE_VECTORIZER="$DATA_DIR/title-vectorizer.pickle"
@@ -46,6 +46,12 @@ eval $UNZIP_INPUT | \
     --title-vectorizer "$TITLE_VECTORIZER" \
     --abstr-vectorizer "$ABSTR_VECTORIZER"
 
-echo "Training model..."
+echo "Training word feature model..."
 WORD_FEATURE_MODEL="$DATA_DIR/word-feature-model.pickle"
 $RLEV train-word-feature-model "$WORD_FEATURE_INPUTS" "$WORD_FEATURE_MODEL"
+
+echo "Getting rlev priors..."
+RLEV_PRIORS="$DATA_DIR/rlev-priors.pickle"
+eval $UNZIP_INPUT | \
+    awk 'BEGIN{FS="\t"}{print $'$RLEV_COL'}' | \
+    $RLEV get-rlev-priors - "$RLEV_PRIORS"
