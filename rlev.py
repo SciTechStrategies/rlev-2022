@@ -1,7 +1,7 @@
 import pickle
+
 import click
 from sklearn.feature_extraction.text import CountVectorizer
-
 
 # Minimum document frequency for word features
 DEFAULT_WORD_FEATURE_MIN_DF = 250
