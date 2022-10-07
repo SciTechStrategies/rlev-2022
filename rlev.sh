@@ -4,13 +4,13 @@ set -e
 
 RLEV="python rlev.py"
 DATA_DIR="data"
-MIN_WORD_FEATURE_DF=250
+MIN_WORD_FEATURE_DF=100
 MIN_YR=10
 MAX_YR=13
 
-TITLE_COL=8
-ABSTR_COL=9
-RLEV_COL=2
+RLEV_COL=1
+TITLE_COL=7
+ABSTR_COL=8
 
 mkdir -p $DATA_DIR
 
@@ -24,24 +24,22 @@ do
     ALL_INPUT_FILES="$ALL_INPUT_FILES $DATA_DIR/$basename"
 done
 
-UNZIP_INPUT="gunzip -c $ALL_INPUT_FILES"  # | head -100000"
+FORMATTED="$DATA_DIR/cpid_rl_fx_t_a_${MIN_YR}_${MAX_YR}.txt"
+gunzip -c $ALL_INPUT_FILES | head -10000 | $RLEV format-input - > $FORMATTED
 
 echo "Building title vectorizer..."
 TITLE_VECTORIZER="$DATA_DIR/title-vectorizer.pickle"
-eval $UNZIP_INPUT | \
-    awk 'BEGIN{FS="\t"}{print $'$TITLE_COL'}' | \
+awk 'BEGIN{FS="\t"}{print $'$TITLE_COL'}' "$FORMATTED" | \
     $RLEV create-count-vectorizer - "$TITLE_VECTORIZER" --min-df "$MIN_WORD_FEATURE_DF"
 
 echo "Building abstract vectorizer..."
 ABSTR_VECTORIZER="$DATA_DIR/abstr-vectorizer.pickle"
-eval $UNZIP_INPUT | \
-    awk 'BEGIN{FS="\t"}{print $'$ABSTR_COL'}' | \
+awk 'BEGIN{FS="\t"}{print $'$ABSTR_COL'}' "$FORMATTED" | \
     $RLEV create-count-vectorizer - "$ABSTR_VECTORIZER" --min-df "$MIN_WORD_FEATURE_DF"
 
 echo "Building word feature model inputs..."
 WORD_FEATURE_INPUTS="$DATA_DIR/word-feature-model-inputs.pickle"
-eval $UNZIP_INPUT | \
-    awk 'BEGIN{FS="\t";OFS="\t"}{print $'$RLEV_COL',$'$TITLE_COL',$'$ABSTR_COL'}' | \
+awk 'BEGIN{FS="\t";OFS="\t"}{print $'$RLEV_COL',$'$TITLE_COL',$'$ABSTR_COL'}' "$FORMATTED" | \
     $RLEV create-word-feature-model-inputs - "$WORD_FEATURE_INPUTS" \
     --title-vectorizer "$TITLE_VECTORIZER" \
     --abstr-vectorizer "$ABSTR_VECTORIZER"
@@ -52,14 +50,12 @@ $RLEV train-lr-model "$WORD_FEATURE_INPUTS" "$WORD_FEATURE_MODEL"
 
 echo "Getting rlev priors..."
 RLEV_PRIORS="$DATA_DIR/rlev-priors.pickle"
-eval $UNZIP_INPUT | \
-    awk 'BEGIN{FS="\t"}{print $'$RLEV_COL'}' | \
+awk 'BEGIN{FS="\t"}{print $'$RLEV_COL'}' "$FORMATTED" | \
     $RLEV get-rlev-priors - "$RLEV_PRIORS"
 
 echo "Building combined model inputs..."
 COMBINED_INPUTS="$DATA_DIR/combined-model-inputs.pickle"
-eval $UNZIP_INPUT | \
-    awk 'BEGIN{FS="\t";OFS="\t"}{print $'$RLEV_COL',$3,$4,$5,$6,$'$TITLE_COL',$'$ABSTR_COL'}' | \
+awk 'BEGIN{FS="\t";OFS="\t"}{print $'$RLEV_COL',$2,$3,$4,$5,$'$TITLE_COL',$'$ABSTR_COL'}' "$FORMATTED" | \
     $RLEV create-combined-model-inputs - "$COMBINED_INPUTS" \
     --title-vectorizer "$TITLE_VECTORIZER" \
     --abstr-vectorizer "$ABSTR_VECTORIZER" \

@@ -20,6 +20,29 @@ def cli():
     pass
 
 
+@cli.command("format-input")
+@click.argument("infile", type=click.File("rt"))
+def format_input(infile):
+    for line in infile:
+        fields = line.strip().split("\t")
+        if len(fields) != 9:
+            continue
+        try:
+            print(
+                int(fields[0]),
+                int(fields[1]),
+                float(fields[3]),
+                float(fields[4]),
+                float(fields[5]),
+                float(fields[6]),
+                fields[7],
+                fields[8],
+                sep="\t",
+            )
+        except ValueError:
+            continue
+
+
 @cli.command("create-count-vectorizer")
 @click.argument("infile", type=click.File("rt"))
 @click.argument("outfile", type=click.File("wb"))
@@ -42,6 +65,7 @@ def create_count_vectorizer(
     )
     vectorizer.fit(infile)
     pickle.dump(vectorizer, outfile)
+    print(vectorizer.vocabulary_)
 
 
 def chunks(items, n):
