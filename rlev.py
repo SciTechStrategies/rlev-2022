@@ -117,10 +117,10 @@ def create_word_feature_model_inputs(
     pickle.dump((X, Y), outfile)
 
 
-@cli.command("train-word-feature-model")
+@cli.command("train-lr-model")
 @click.argument("infile", type=click.File("rb"))
 @click.argument("outfile", type=click.File("wb"))
-def train_word_feature_model(
+def train_lr_model(
     infile,
     outfile,
 ):
@@ -149,6 +149,82 @@ def get_rlev_priors(
         counts.get(rlev, 0) / total_count for rlev in range(0, max(counts.keys()) + 1)
     ]
     pickle.dump(priors, outfile)
+
+
+@cli.command("create-combined-model-inputs")
+@click.argument("infile", type=click.File("rt"))
+@click.argument("outfile", type=click.File("wb"))
+@click.option("--title-vectorizer", type=click.File("rb"), required=True)
+@click.option("--abstr-vectorizer", type=click.File("rb"), required=True)
+@click.option("--word-feature-model", type=click.File("rb"), required=True)
+@click.option("--rlev-priors", type=click.File("rb"), required=True)
+@click.option(
+    "--min-word-features",
+    type=int,
+    default=DEFAULT_WORD_FEATURE_MIN_FEATURES,
+    help="Minimum number of word features for a document to be "
+    "included in output matrix/labels.",
+)
+def create_combined_model_inputs(
+    infile,
+    outfile,
+    title_vectorizer,
+    abstr_vectorizer,
+    word_feature_model,
+    rlev_priors,
+    min_word_features,
+):
+    """Create the input matrix and label array for the combined model."""
+
+    title_vectorizer = pickle.load(title_vectorizer)
+    abstr_vectorizer = pickle.load(abstr_vectorizer)
+    word_feature_model = pickle.load(word_feature_model)
+    rlev_priors = pickle.load(rlev_priors)
+
+    Y = None
+    X = None
+
+    line_chunks = chunks(infile, 100000)
+    for chunk in line_chunks:
+        lines = [line.strip().split("\t") for line in chunk]
+
+        # Only select rows where we can extract 7 fields.
+        # rlev, ref-prob 1-4, title, abstract
+        lines = [f for f in lines if len(f) == 7]
+
+        ref_probs = np.matrix([[np.float64(x) for x in line[1:5]] for line in lines])
+
+        title_features = title_vectorizer.transform(f[5] for f in lines)
+        abstr_features = abstr_vectorizer.transform(f[6] for f in lines)
+        word_features = sparse.hstack((title_features, abstr_features))
+
+        # Subtract 1 since input rlevs are 1-indexed
+        rlevs = np.array([int(f[0]) - 1 for f in lines])
+
+        row_sums = word_features.sum(axis=1)
+        wc_mask = np.less(row_sums, min_word_features).A1
+        word_probs = word_feature_model.predict_proba(word_features)
+
+        # If a given row has fewer than `min_word_features`
+        # word features, then use priors instead of results
+        # from word feature model.
+        word_probs[wc_mask] = rlev_priors
+
+        features = np.hstack((ref_probs, word_probs))
+
+        if X is None:
+            X = features
+        else:
+            X = np.vstack((X, features))
+
+        if Y is None:
+            Y = rlevs
+        else:
+            Y = np.hstack((Y, rlevs))
+
+    print("X:", X.shape, type(X))
+    print("Y:", Y.shape, type(Y))
+    pickle.dump((X, Y), outfile)
 
 
 if __name__ == "__main__":
