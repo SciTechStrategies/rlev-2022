@@ -16,9 +16,12 @@ repos:
     rev: 5.10.0
     hooks:
     -   id: isort
+-   repo: https://github.com/PyCQA/flake8
+    rev: 5.0.4
+    hooks:
+    -   id: flake8
 -   repo: https://github.com/lovesegfault/beautysh
     rev: v6.2.1
     hooks:
     -   id: beautysh
         types: [shell]
-# -   id: autoflake
