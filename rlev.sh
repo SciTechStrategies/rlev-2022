@@ -18,7 +18,7 @@ echo "Downloading data from S3..."
 ALL_INPUT_FILES=""
 for yr in $(seq $MIN_YR $MAX_YR)
 do
-    echo $yr
+    echo "Downloading $yr..."
     basename="cpid${yr}_rl_nr_fx_t_a.txt.gz"
     # aws s3 cp "s3://scitech/projects/rlev/$basename" $DATA_DIR
     ALL_INPUT_FILES="$ALL_INPUT_FILES $DATA_DIR/$basename"
