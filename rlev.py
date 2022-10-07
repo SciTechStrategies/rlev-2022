@@ -65,7 +65,6 @@ def create_count_vectorizer(
     )
     vectorizer.fit(infile)
     pickle.dump(vectorizer, outfile)
-    print(vectorizer.vocabulary_)
 
 
 def chunks(items, n):

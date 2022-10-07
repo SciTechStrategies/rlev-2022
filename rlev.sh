@@ -4,11 +4,13 @@ set -e
 
 RLEV="python rlev.py"
 DATA_DIR="data"
-MIN_WORD_FEATURE_DF=100
-MIN_YR=10
-MAX_YR=13
+MIN_WORD_FEATURE_DF=250
+# MIN_YR=10
+# MAX_YR=13
+MIN_YR=14
+MAX_YR=21
 
-RLEV_COL=1
+RLEV_COL=2
 TITLE_COL=7
 ABSTR_COL=8
 
@@ -20,12 +22,13 @@ for yr in $(seq $MIN_YR $MAX_YR)
 do
     echo "Downloading 20$yr..."
     basename="cpid${yr}_rl_nr_fx_t_a.txt.gz"
-    # aws s3 cp "s3://scitech/projects/rlev/$basename" $DATA_DIR
+    aws s3 cp "s3://scitech/projects/rlev/$basename" $DATA_DIR
     ALL_INPUT_FILES="$ALL_INPUT_FILES $DATA_DIR/$basename"
 done
 
+echo "Formatting data..."
 FORMATTED="$DATA_DIR/cpid_rl_fx_t_a_${MIN_YR}_${MAX_YR}.txt"
-gunzip -c $ALL_INPUT_FILES | head -10000 | $RLEV format-input - > $FORMATTED
+gunzip -c $ALL_INPUT_FILES | $RLEV format-input - > $FORMATTED
 
 echo "Building title vectorizer..."
 TITLE_VECTORIZER="$DATA_DIR/title-vectorizer.pickle"
