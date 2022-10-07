@@ -12,5 +12,8 @@ repos:
     rev: 22.10.0
     hooks:
     -   id: black
-# -   id: isort
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.10.0
+    hooks:
+    -   id: isort
 # -   id: autoflake
