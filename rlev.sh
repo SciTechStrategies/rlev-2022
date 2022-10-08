@@ -68,10 +68,11 @@ COMBINED_MODEL="$DATA_DIR/combined-model.pickle"
 $RLEV train-lr-model "$COMBINED_INPUTS" "$COMBINED_MODEL"
 
 echo "Getting combined model predictions..."
+PREDICTIONS="$DATA_DIR/predictions.txt"
 awk 'BEGIN{FS="\t";OFS="\t"}{print $1,$'$RLEV_COL',$3,$4,$5,$6,$'$TITLE_COL',$'$ABSTR_COL'}' "$FORMATTED" | \
     $RLEV get-combined-model-predictions - \
     --title-vectorizer "$TITLE_VECTORIZER" \
     --abstr-vectorizer "$ABSTR_VECTORIZER" \
     --word-feature-model "$WORD_FEATURE_MODEL" \
     --rlev-priors "$RLEV_PRIORS" \
-    --combined-model "$COMBINED_MODEL"
+    --combined-model "$COMBINED_MODEL" > "$PREDICTIONS"
