@@ -1,4 +1,5 @@
 import pickle
+import sys
 from collections import Counter
 
 import click
@@ -174,6 +175,36 @@ def get_rlev_priors(
     pickle.dump(priors, outfile)
 
 
+def _get_combined_model_features(
+    *,
+    titles,
+    ref_probs,
+    abstracts,
+    title_vectorizer,
+    abstr_vectorizer,
+    rlev_priors,
+    word_feature_model,
+    min_word_features,
+):
+    ref_probs = np.matrix([[np.float64(x) for x in line] for line in ref_probs])
+
+    title_features = title_vectorizer.transform(titles)
+    abstr_features = abstr_vectorizer.transform(abstracts)
+    word_features = sparse.hstack((title_features, abstr_features))
+
+    row_sums = word_features.sum(axis=1)
+    wc_mask = np.less(row_sums, min_word_features).A1
+    word_probs = word_feature_model.predict_proba(word_features)
+
+    # If a given row has fewer than `min_word_features`
+    # word features, then use priors instead of results
+    # from word feature model.
+    word_probs[wc_mask] = rlev_priors
+
+    features = np.hstack((ref_probs, word_probs))
+    return features
+
+
 @cli.command("create-combined-model-inputs")
 @click.argument("infile", type=click.File("rt"))
 @click.argument("outfile", type=click.File("wb"))
@@ -209,31 +240,28 @@ def create_combined_model_inputs(
 
     line_chunks = chunks(infile, 100000)
     for chunk in line_chunks:
-        lines = [line.strip().split("\t") for line in chunk]
 
+        lines = [line.strip().split("\t") for line in chunk]
         # Only select rows where we can extract 7 fields.
         # rlev, ref-prob 1-4, title, abstract
         lines = [f for f in lines if len(f) == 7]
 
-        ref_probs = np.matrix([[np.float64(x) for x in line[1:5]] for line in lines])
+        if not lines:
+            continue
 
-        title_features = title_vectorizer.transform(f[5] for f in lines)
-        abstr_features = abstr_vectorizer.transform(f[6] for f in lines)
-        word_features = sparse.hstack((title_features, abstr_features))
+        features = _get_combined_model_features(
+            ref_probs=[line[1:5] for line in lines],
+            titles=[line[5] for line in lines],
+            abstracts=[line[6] for line in lines],
+            title_vectorizer=title_vectorizer,
+            abstr_vectorizer=abstr_vectorizer,
+            word_feature_model=word_feature_model,
+            min_word_features=min_word_features,
+            rlev_priors=rlev_priors,
+        )
 
         # Subtract 1 since input rlevs are 1-indexed
         rlevs = np.array([int(f[0]) - 1 for f in lines])
-
-        row_sums = word_features.sum(axis=1)
-        wc_mask = np.less(row_sums, min_word_features).A1
-        word_probs = word_feature_model.predict_proba(word_features)
-
-        # If a given row has fewer than `min_word_features`
-        # word features, then use priors instead of results
-        # from word feature model.
-        word_probs[wc_mask] = rlev_priors
-
-        features = np.hstack((ref_probs, word_probs))
 
         if X is None:
             X = features
@@ -248,6 +276,67 @@ def create_combined_model_inputs(
     print("X:", X.shape, type(X))
     print("Y:", Y.shape, type(Y))
     pickle.dump((X, Y), outfile)
+
+
+@cli.command("get-combined-model-predictions")
+@click.argument("infile", type=click.File("rt"))
+@click.option("--title-vectorizer", type=click.File("rb"), required=True)
+@click.option("--abstr-vectorizer", type=click.File("rb"), required=True)
+@click.option("--word-feature-model", type=click.File("rb"), required=True)
+@click.option("--rlev-priors", type=click.File("rb"), required=True)
+@click.option(
+    "--min-word-features",
+    type=int,
+    default=DEFAULT_WORD_FEATURE_MIN_FEATURES,
+    help="Minimum number of word features for a document to be "
+    "included in output matrix/labels.",
+)
+@click.option("--combined-model", type=click.File("rb"), required=True)
+def get_combined_model_predictions(
+    infile,
+    title_vectorizer,
+    abstr_vectorizer,
+    word_feature_model,
+    rlev_priors,
+    min_word_features,
+    combined_model,
+):
+    """Get combined model probabilities."""
+
+    title_vectorizer = pickle.load(title_vectorizer)
+    abstr_vectorizer = pickle.load(abstr_vectorizer)
+    word_feature_model = pickle.load(word_feature_model)
+    rlev_priors = pickle.load(rlev_priors)
+    combined_model = pickle.load(combined_model)
+
+    line_chunks = chunks(infile, 100000)
+    for chunk in line_chunks:
+
+        lines = [line.strip().split("\t") for line in chunk]
+        # Only select rows where we can extract 8 fields.
+        # id, rlev, ref-prob 1-4, title, abstract
+        lines = [f for f in lines if len(f) == 8]
+
+        if not lines:
+            continue
+
+        features = _get_combined_model_features(
+            ref_probs=[line[2:6] for line in lines],
+            titles=[line[6] for line in lines],
+            abstracts=[line[7] for line in lines],
+            title_vectorizer=title_vectorizer,
+            abstr_vectorizer=abstr_vectorizer,
+            word_feature_model=word_feature_model,
+            min_word_features=min_word_features,
+            rlev_priors=rlev_priors,
+        )
+
+        id_rlev = np.matrix([line[0:2] for line in lines])
+
+        probs = combined_model.predict_proba(features)
+        results = np.hstack((id_rlev, probs))
+
+        np.savetxt(sys.stdout, results, fmt="%s", delimiter="\t")
 
 
 if __name__ == "__main__":
