@@ -76,3 +76,14 @@ awk 'BEGIN{FS="\t";OFS="\t"}{print $1,$'$RLEV_COL',$3,$4,$5,$6,$'$TITLE_COL',$'$
     --word-feature-model "$WORD_FEATURE_MODEL" \
     --rlev-priors "$RLEV_PRIORS" \
     --combined-model "$COMBINED_MODEL" > "$PREDICTIONS"
+
+gzip "$PREDICTIONS"
+
+aws s3 cp "$PREDICTIONS".gz s3://scitech/projects/rlev/
+aws s3 cp "$COMBINED_MODEL" s3://scitech/projects/rlev/
+aws s3 cp "$COMBINED_INPUTS" s3://scitech/projects/rlev/
+aws s3 cp "$RLEV_PRIORS" s3://scitech/projects/rlev/
+aws s3 cp "$WORD_FEATURE_MODEL" s3://scitech/projects/rlev/
+aws s3 cp "$WORD_FEATURE_INPUTS" s3://scitech/projects/rlev/
+aws s3 cp "$ABSTR_VECTORIZER" s3://scitech/projects/rlev/
+aws s3 cp "$TITLE_VECTORIZER" s3://scitech/projects/rlev/
