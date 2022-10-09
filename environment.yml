@@ -1,0 +1,3 @@
+name: rlev-2022
+dependencies:
+- python == 3.10.4
