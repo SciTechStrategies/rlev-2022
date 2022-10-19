@@ -24,4 +24,6 @@ do
         --word-feature-model "$WORD_FEATURE_MODEL" \
         --rlev-priors "$RLEV_PRIORS" \
         --combined-model "$COMBINED_MODEL" > "$predictions"
+    gzip "$predictions"
+    aws s3 cp "$predictions.gz" s3://scitech/projects/rlev/
 done
