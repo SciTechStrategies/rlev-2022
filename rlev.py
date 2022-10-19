@@ -345,12 +345,7 @@ def get_combined_model_predictions(
             min_word_features=min_word_features,
             rlev_priors=rlev_priors,
         )
-
-        if with_labels:
-            id_rlev = np.matrix([line[0:2] for line in lines])
-        else:
-            id_rlev = np.matrix([line[0:1] for line in lines])
-
+        id_rlev = np.matrix([line[0:pre] for line in lines])
         probs = combined_model.predict_proba(features)
         results = np.hstack((id_rlev, probs))
 
