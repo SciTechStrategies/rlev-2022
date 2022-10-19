@@ -38,15 +38,16 @@ def format_input(infile, with_labels):
                 )
             else:
                 first_fields = (int(fields[0]),)
+            pre = len(first_fields)
 
             print(
                 *first_fields,
-                float(fields[3]),
-                float(fields[4]),
-                float(fields[5]),
-                float(fields[6]),
-                fields[7],
-                fields[8],
+                float(fields[pre + 1]),
+                float(fields[pre + 2]),
+                float(fields[pre + 3]),
+                float(fields[pre + 4]),
+                fields[pre + 5],
+                fields[pre + 6],
                 sep="\t",
             )
         except ValueError:
