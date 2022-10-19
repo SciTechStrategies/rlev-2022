@@ -26,7 +26,7 @@ done
 
 echo "Formatting data..."
 FORMATTED="$DATA_DIR/cpid_rl_fx_t_a_${MIN_YR}_${MAX_YR}.txt"
-gunzip -c $ALL_INPUT_FILES | $RLEV format-input - > $FORMATTED
+gunzip -c $ALL_INPUT_FILES | $RLEV format-input --with-labels - > $FORMATTED
 
 echo "Building title vectorizer..."
 TITLE_VECTORIZER="$DATA_DIR/title-vectorizer.pickle"
@@ -69,8 +69,9 @@ $RLEV train-lr-model "$COMBINED_INPUTS" "$COMBINED_MODEL"
 
 echo "Getting combined model predictions..."
 PREDICTIONS="$DATA_DIR/predictions.txt"
-awk 'BEGIN{FS="\t";OFS="\t"}{print $1,$'$RLEV_COL',$3,$4,$5,$6,$'$TITLE_COL',$'$ABSTR_COL'}' "$FORMATTED" | \
+awk 'BEGIN{FS="\t";OFS="\t"}{print $1,$3,$4,$5,$6,$'$TITLE_COL',$'$ABSTR_COL'}' "$FORMATTED" | \
     $RLEV get-combined-model-predictions - \
+    --with-labels \
     --title-vectorizer "$TITLE_VECTORIZER" \
     --abstr-vectorizer "$ABSTR_VECTORIZER" \
     --word-feature-model "$WORD_FEATURE_MODEL" \

@@ -23,15 +23,24 @@ def cli():
 
 @cli.command("format-input")
 @click.argument("infile", type=click.File("rt"))
-def format_input(infile):
+@click.option("--with-labels", is_flag=True)
+def format_input(infile, with_labels):
+    n_fields = 9 if with_labels else 8
     for line in infile:
         fields = line.strip().split("\t")
-        if len(fields) != 9:
+        if len(fields) != n_fields:
             continue
         try:
+            if with_labels:
+                first_fields = (
+                    int(fields[0]),
+                    int(fields[1]),
+                )
+            else:
+                first_fields = (int(fields[0]),)
+
             print(
-                int(fields[0]),
-                int(fields[1]),
+                *first_fields,
                 float(fields[3]),
                 float(fields[4]),
                 float(fields[5]),
@@ -292,6 +301,7 @@ def create_combined_model_inputs(
     "included in output matrix/labels.",
 )
 @click.option("--combined-model", type=click.File("rb"), required=True)
+@click.option("--with-labels", is_flag=True)
 def get_combined_model_predictions(
     infile,
     title_vectorizer,
@@ -300,6 +310,7 @@ def get_combined_model_predictions(
     rlev_priors,
     min_word_features,
     combined_model,
+    with_labels,
 ):
     """Get combined model probabilities."""
 
@@ -310,20 +321,24 @@ def get_combined_model_predictions(
     combined_model = pickle.load(combined_model)
 
     line_chunks = chunks(infile, 100000)
+
+    n_fields = 8 if with_labels else 7
+    pre = 2 if with_labels else 1
+
     for chunk in line_chunks:
 
         lines = [line.strip().split("\t") for line in chunk]
-        # Only select rows where we can extract 8 fields.
-        # id, rlev, ref-prob 1-4, title, abstract
-        lines = [f for f in lines if len(f) == 8]
+        # Only select rows where we can extract `n_fields` fields.
+        # id, rlev (if with_labels is True), ref-prob 1-4, title, abstract
+        lines = [f for f in lines if len(f) == n_fields]
 
         if not lines:
             continue
 
         features = _get_combined_model_features(
-            ref_probs=[line[2:6] for line in lines],
-            titles=[line[6] for line in lines],
-            abstracts=[line[7] for line in lines],
+            ref_probs=[line[pre : pre + 4] for line in lines],
+            titles=[line[pre + 4] for line in lines],
+            abstracts=[line[pre + 5] for line in lines],
             title_vectorizer=title_vectorizer,
             abstr_vectorizer=abstr_vectorizer,
             word_feature_model=word_feature_model,
@@ -331,7 +346,10 @@ def get_combined_model_predictions(
             rlev_priors=rlev_priors,
         )
 
-        id_rlev = np.matrix([line[0:2] for line in lines])
+        if with_labels:
+            id_rlev = np.matrix([line[0:2] for line in lines])
+        else:
+            id_rlev = np.matrix([line[0:1] for line in lines])
 
         probs = combined_model.predict_proba(features)
         results = np.hstack((id_rlev, probs))
