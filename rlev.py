@@ -25,7 +25,7 @@ def cli():
 @click.argument("infile", type=click.File("rt"))
 @click.option("--with-labels", is_flag=True)
 def format_input(infile, with_labels):
-    n_fields = 9 if with_labels else 8
+    n_fields = 8 if with_labels else 7
     for line in infile:
         fields = line.strip().split("\t")
         if len(fields) != n_fields:
@@ -41,12 +41,12 @@ def format_input(infile, with_labels):
 
             print(
                 *first_fields,
+                float(fields[2]),
                 float(fields[3]),
                 float(fields[4]),
                 float(fields[5]),
-                float(fields[6]),
+                fields[6],
                 fields[7],
-                fields[8],
                 sep="\t",
             )
         except ValueError:
