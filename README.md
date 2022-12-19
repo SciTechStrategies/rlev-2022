@@ -37,7 +37,7 @@ You can set three environment variables that will affect the output:
 
 * `MODEL_DIR` the directory where model files should be put (defaults to `model/`)
 * `DATA_DIR` the directory where intermediate data files should be put (defaults to `data/`)
-* `MIN_WORD_FEATURE_DF` the minimum number of documents (titles or abstracts) that a word must appear in to be included as a feature.
+* `MIN_WORD_FEATURE_DF` the minimum number of documents (titles or abstracts) that a word must appear in to be included as a feature (defaults to `250`).
 
 Output of this command will be a set of files that contain pickled Python objects that are used to perform the prediction task.
 
