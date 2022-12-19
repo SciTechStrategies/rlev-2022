@@ -8,9 +8,9 @@ https://www.sciencedirect.com/science/article/abs/pii/S1751157713000825
 ## Installation
 
 The code is written in Python. We ran the model using Python version 3.10.4.
-We include an `environment.yml` file for building a [Conda] environment with the correct Python version.
+We include an `environment.yml` file for building a Conda environment with the correct Python version.
 
-Dependencies can be installed via [pip]: `pip install -r requirements.txt`.
+Dependencies can be installed via pip: `pip install -r requirements.txt`.
 
 ## Testing
 
@@ -39,7 +39,7 @@ You can set three environment variables that will affect the output:
 * `DATA_DIR` the directory where intermediate data files should be put (defaults to `data/`)
 * `MIN_WORD_FEATURE_DF` the minimum number of documents (titles or abstracts) that a word must appear in to be included as a feature.
 
-Output of this command will be a set of files that contain [pickled] Python objects that are used to perform the prediction task.
+Output of this command will be a set of files that contain pickled Python objects that are used to perform the prediction task.
 
 # Predicting
 
